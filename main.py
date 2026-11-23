@@ -323,9 +323,12 @@ def say(view, me, role):
                 t = (e.get("text") or "").lower()
                 if not WOLFISH.search(t):
                     continue
-                if ("seat %d" % me) in t:
+                # Compare seat numbers, not substrings: a wolf in seat 1 is not
+                # the subject of "seat 11 is a wolf".
+                seats = {int(m.group(1)) for m in SEATREF.finditer(t)}
+                if me in seats:
                     aimed.append(e["seat"])
-                elif partner is not None and ("seat %d" % partner) in t:
+                elif partner is not None and partner in seats:
                     aimed.append(e["seat"])
         if aimed:
             return (

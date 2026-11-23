@@ -295,6 +295,20 @@ class SpeechTest(unittest.TestCase):
         v = view(me=2, role="werewolf", log=[speech(4, "seat 2 is a liar")])
         self.assertIsNotNone(w.say(v, 2, "werewolf"))
 
+    def test_a_wolf_in_seat_one_ignores_an_accusation_of_seat_eleven(self):
+        # "seat 1" is a prefix of "seat 11"; the wolf in seat 1 has not been
+        # accused, and answering anyway is a line it does not need to say.
+        players = [player(i, "P%d" % i) for i in range(1, 13)]
+        v = view(me=1, role="werewolf", players=players,
+                 log=[speech(4, "seat 11 is a wolf, vote him out")])
+        self.assertIsNone(w.say(v, 1, "werewolf"))
+
+    def test_a_wolf_answers_an_accusation_aimed_at_its_partner(self):
+        players = [player(i, "P%d" % i) for i in range(1, 13)]
+        v = view(me=1, role="werewolf", players=players, partner={"seat": 11},
+                 log=[speech(4, "seat 11 is a wolf")])
+        self.assertIsNotNone(w.say(v, 1, "werewolf"))
+
     def test_a_villager_backs_a_seer_claim(self):
         v = view(me=1, role="villager", log=[speech(4, "I am the seer")])
         self.assertIn("seat 4", w.say(v, 1, "villager").lower())
