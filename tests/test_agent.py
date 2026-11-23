@@ -68,6 +68,24 @@ class ReadTableTest(unittest.TestCase):
         _, accused, *_ = w.read_table(view(players=players, log=[speech(1, "budi looks shady")]))
         self.assertEqual(accused[2], 1.0)
 
+    def test_a_name_inside_a_longer_name_accuses_only_the_seat_named(self):
+        # "Budiman" contains "Budi"; only the seat that was actually named was
+        # accused, and crediting both moves the vote read by a whole point.
+        players = [player(1, "Ana"), player(2, "Budi"), player(3, "Budiman")]
+        _, accused, *_ = w.read_table(
+            view(players=players, log=[speech(1, "budiman looks shady")])
+        )
+        self.assertEqual(accused[3], 1.0)
+        self.assertEqual(accused[2], 0.0)
+
+    def test_a_name_inside_an_ordinary_word_accuses_nobody(self):
+        # "aliens" is not a mention of Ali.
+        players = [player(1, "Ana"), player(4, "Ali")]
+        _, accused, *_ = w.read_table(
+            view(players=players, log=[speech(1, "the aliens are shady")])
+        )
+        self.assertEqual(accused[4], 0.0)
+
     def test_a_seat_never_accuses_itself(self):
         _, accused, *_ = w.read_table(view(log=[speech(5, "seat 5 is the wolf")]))
         self.assertEqual(accused[5], 0.0)
@@ -276,6 +294,20 @@ class SpeechTest(unittest.TestCase):
     def test_a_wolf_answers_an_accusation_aimed_at_it(self):
         v = view(me=2, role="werewolf", log=[speech(4, "seat 2 is a liar")])
         self.assertIsNotNone(w.say(v, 2, "werewolf"))
+
+    def test_a_wolf_in_seat_one_ignores_an_accusation_of_seat_eleven(self):
+        # "seat 1" is a prefix of "seat 11"; the wolf in seat 1 has not been
+        # accused, and answering anyway is a line it does not need to say.
+        players = [player(i, "P%d" % i) for i in range(1, 13)]
+        v = view(me=1, role="werewolf", players=players,
+                 log=[speech(4, "seat 11 is a wolf, vote him out")])
+        self.assertIsNone(w.say(v, 1, "werewolf"))
+
+    def test_a_wolf_answers_an_accusation_aimed_at_its_partner(self):
+        players = [player(i, "P%d" % i) for i in range(1, 13)]
+        v = view(me=1, role="werewolf", players=players, partner={"seat": 11},
+                 log=[speech(4, "seat 11 is a wolf")])
+        self.assertIsNotNone(w.say(v, 1, "werewolf"))
 
     def test_a_villager_backs_a_seer_claim(self):
         v = view(me=1, role="villager", log=[speech(4, "I am the seer")])
